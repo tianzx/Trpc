@@ -1,5 +1,6 @@
 package net.tianzx.registy;
 
+import net.tianzx.client.ConnectManage;
 import net.tianzx.constants.Constant;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -33,7 +34,6 @@ public class ServiceDiscovery {
         this.registerAddress = registerAddress;
         zk = connectServer(registerAddress);
         if (zk != null) {
-            System.err.println(zk);
             watchNode(zk);
         }
     }
@@ -58,7 +58,7 @@ public class ServiceDiscovery {
             logger.debug("node data: {}", dataList);
             this.dataList = dataList;
             logger.debug("Service discovery triggered updating connected server node.");
-//            updateConnectedServer();
+            updateConnectedServer();
         } catch (KeeperException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -83,6 +83,10 @@ public class ServiceDiscovery {
             logger.error(e.getMessage());
         }
         return zk;
+    }
+
+    private void updateConnectedServer(){
+        ConnectManage.getInstance().updateConnectedServer(this.dataList);
     }
 
     public static void main(String[] args) {
