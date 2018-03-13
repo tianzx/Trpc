@@ -36,7 +36,7 @@ public class ConnectManage {
     private Condition connected = lock.newCondition();
     private long connectTimeoutMillis = 6000;
     private AtomicInteger roundRobin = new AtomicInteger(0);
-    private volatile boolean isRuning = true;
+    private volatile boolean isRunning = true;
 
     private ConnectManage() {
     }
@@ -58,6 +58,43 @@ public class ConnectManage {
         } else {
             logger.error("No available server node. All server nodes are down !!!");
 
+        }
+    }
+
+    public RpcClientHandler chooseHandler() {
+        CopyOnWriteArrayList<RpcClientHandler> handlers = (CopyOnWriteArrayList<RpcClientHandler>) this.connectedHandlers.clone();
+        int size = handlers.size();
+        while (isRunning && size <= 0) {
+            try {
+                boolean available = waitingForHandler();
+                if(available){
+                    handlers = (CopyOnWriteArrayList<RpcClientHandler>) this.connectedHandlers.clone();
+                    size = handlers.size();
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                logger.error("Waiting for available node is interrupted! ", e);
+                throw new RuntimeException("Can't connect any servers!", e);
+            }
+            int index = (roundRobin.getAndAdd(1) + size) % size;
+            return handlers.get(index);
+        }
+        return null;
+    }
+
+    private boolean waitingForHandler() throws InterruptedException {
+        lock.lock();
+        try {
+            return connected.await(this.connectTimeoutMillis, TimeUnit.MILLISECONDS);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void stop() {
+        isRunning = false;
+        for (int i = 0; i < connectedHandlers.size(); ++i) {
+            RpcClientHandler connectedServerHandler = connectedHandlers.get(i);
         }
     }
 }

@@ -5,11 +5,14 @@ import net.tianzx.model.RpcResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created with IntelliJ IDEA.
@@ -23,6 +26,8 @@ public class RpcFuture implements Future<Object> {
     private RpcRequest request;
     private RpcResponse response;
     private long startTime;
+    private ReentrantLock lock = new ReentrantLock();
+    private List<AsyncRPCCallback> pendingCallbacks = new ArrayList<AsyncRPCCallback>();
 
     public RpcFuture(RpcRequest request) {
         this.sync = new Sync();
@@ -31,8 +36,26 @@ public class RpcFuture implements Future<Object> {
     }
 
     public void done(RpcResponse reponse) {
-        this.response =reponse;
+        this.response = reponse;
         sync.release(1);
+        invokeCallbacks();
+
+    }
+
+    private void invokeCallbacks() {
+        lock.lock();
+        try {
+            for (AsyncRPCCallback callback:pendingCallbacks) {
+                runCallback(callback);
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void runCallback(AsyncRPCCallback callback) {
+        final RpcResponse res = this.response;
+
     }
 
     @Override
