@@ -1,7 +1,10 @@
 package net.tianzx.client;
 
+import net.tianzx.client.proxy.IAsyncObjectProxy;
+import net.tianzx.client.proxy.ObjectProxy;
 import net.tianzx.registy.ServiceDiscovery;
 
+import java.lang.reflect.Proxy;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -26,6 +29,23 @@ public class RpcClient {
     }
 
     public static <T> T create(Class<T> interfaceClass) {
+        return (T) Proxy.newProxyInstance(
+                interfaceClass.getClassLoader(),
+                new Class<?>[]{interfaceClass},
+                new ObjectProxy<T>(interfaceClass)
+        );
+    }
+    public static <T> IAsyncObjectProxy createAsync(Class<T> interfaceClass) {
+        return new ObjectProxy<T>(interfaceClass);
+    }
 
+    public static void submit(Runnable task) {
+        threadPoolExecutor.submit(task);
+    }
+
+    public void stop() {
+        threadPoolExecutor.shutdown();
+        serviceDiscovery.stop();
+        ConnectManage.getInstance().stop();
     }
 }

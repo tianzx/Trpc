@@ -89,6 +89,15 @@ public class ServiceDiscovery {
         ConnectManage.getInstance().updateConnectedServer(this.dataList);
     }
 
+    public void stop(){
+        if(zk!=null){
+            try {
+                zk.close();
+            } catch (InterruptedException e) {
+                logger.error("", e);
+            }
+        }
+    }
     public static void main(String[] args) {
         ServiceDiscovery serviceDiscovery = new ServiceDiscovery("101.200.122.27:2181");
 //        serviceDiscovery
