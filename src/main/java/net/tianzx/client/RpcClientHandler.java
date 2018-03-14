@@ -1,10 +1,7 @@
 package net.tianzx.client;
 
 import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.*;
 import net.tianzx.model.RpcRequest;
 import net.tianzx.model.RpcResponse;
 import org.slf4j.Logger;
@@ -12,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.SocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Created with IntelliJ IDEA.
@@ -52,12 +50,28 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
     public void close() {
         channel.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
     }
+
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         logger.error("client caught exception", cause);
         ctx.close();
     }
-    public RpcFuture sendRequest(RpcRequest request) {
 
+    public RpcFuture sendRequest(RpcRequest request) {
+        final CountDownLatch latch = new CountDownLatch(1);
+        RpcFuture future = new RpcFuture(request);
+        pendingRPC.put(request.getRequestId(), future);
+        channel.writeAndFlush(request).addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                latch.countDown();
+            }
+        });
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return future;
     }
 }
