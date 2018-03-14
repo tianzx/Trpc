@@ -17,6 +17,7 @@ import java.util.concurrent.CountDownLatch;
  * Date: 3/13/18
  * Time: 11:12 AM
  */
+
 public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
     private static final Logger logger = LoggerFactory.getLogger(RpcClientHandler.class);
 
@@ -24,6 +25,22 @@ public class RpcClientHandler extends SimpleChannelInboundHandler<RpcResponse> {
 
     private volatile Channel channel;
     private SocketAddress remotePeer;
+
+    public Channel getChannel() {
+        return channel;
+    }
+
+    public void setChannel(Channel channel) {
+        this.channel = channel;
+    }
+
+    public SocketAddress getRemotePeer() {
+        return remotePeer;
+    }
+
+    public void setRemotePeer(SocketAddress remotePeer) {
+        this.remotePeer = remotePeer;
+    }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {

@@ -45,7 +45,7 @@ public class RpcFuture implements Future<Object> {
     private void invokeCallbacks() {
         lock.lock();
         try {
-            for (AsyncRPCCallback callback:pendingCallbacks) {
+            for (AsyncRPCCallback callback : pendingCallbacks) {
                 runCallback(callback);
             }
         } finally {
@@ -53,9 +53,32 @@ public class RpcFuture implements Future<Object> {
         }
     }
 
+    public RpcFuture addCallback(AsyncRPCCallback callback) {
+        lock.lock();
+        try {
+            if (isDone()) {
+                runCallback(callback);
+            } else {
+                this.pendingCallbacks.add(callback);
+            }
+        } finally {
+            lock.unlock();
+        }
+        return this;
+    }
+
     private void runCallback(AsyncRPCCallback callback) {
         final RpcResponse res = this.response;
-        RpcClient.su
+        RpcClient.submit(new Runnable() {
+            @Override
+            public void run() {
+                if (!res.isError()) {
+                    callback.success(res.getResult());
+                } else {
+                    callback.fail(new RuntimeException("Response error", new Throwable(res.getError())));
+                }
+            }
+        });
     }
 
     @Override
